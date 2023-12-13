@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS wb.order;
+DROP TABLE IF EXISTS wb.item;
+DROP TABLE IF EXISTS wb.payment;
+DROP TABLE IF EXISTS wb.delivery;
+DROP SCHEMA wb;
