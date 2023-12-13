@@ -64,7 +64,13 @@ CREATE TABLE IF NOT EXISTS wb.order (
     CONSTRAINT PK_order PRIMARY KEY ( "id" ),
     CONSTRAINT FK_order_delivery FOREIGN KEY ( delivery ) REFERENCES wb.delivery ( "id" ),
     CONSTRAINT FK_order_payment FOREIGN KEY ( payment ) REFERENCES wb.payment ( "id" )
-    --Will block deletion of items mentioned in any archived orders
-    --Not supported in postgres anyway
-    --CONSTRAINT FK_order_item FOREIGN KEY ( EACH ELEMENT OF item ) REFERENCES wb.item ( "id" )
+);
+
+CREATE TABLE order_item (
+    "id"            bigserial NOT NULL,
+    order_id        character varying(250) NOT NULL,
+    item_id         bigint NOT NULL,
+    CONSTRAINT PK_oi PRIMARY KEY ( "id" ),
+    CONSTRAINT FK_oi_order_id FOREIGN KEY ( order_id ) REFERENCES wb.order ( "id" ),
+    CONSTRAINT FK_oi_item_id FOREIGN KEY ( item_id ) REFERENCES wb.item ( "id" )
 );
