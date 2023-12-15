@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS wb.delivery(
     "id"                 bigserial NOT NULL,
     name                 character varying(250),
     phone                character varying(12),
-    zip                  character varying(6),
+    zip                  character varying(25),
     city                 character varying(250),
     address              character varying(250),
     region               character varying(250),
@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS wb.payment(
     currency             character varying(250),
     provider             character varying(250),
     amount               integer,
-    payment_dt           date,
-    Bank                 character varying(250),
+    payment_dt           character varying(250),
+    bank                 character varying(250),
     delivery_cost        integer,
     goods_total          integer,
     custom_fee           integer,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS wb.order (
     CONSTRAINT FK_order_payment FOREIGN KEY ( payment ) REFERENCES wb.payment ( "id" )
 );
 
-CREATE TABLE order_item (
+CREATE TABLE wb.order_item (
     "id"            bigserial NOT NULL,
     order_id        character varying(250) NOT NULL,
     item_id         bigint NOT NULL,

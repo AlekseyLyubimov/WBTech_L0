@@ -11,12 +11,12 @@ type Order struct {
 
 	bun.BaseModel `bun:"table:wb.order"`
 
-	ID *string `bun:"id"`
+	ID *string `bun:"id,pk"`
 	TrackNumber *string `bun:"track_number"`
 	Entry *string `bun:"entry"`
-	Delivery *Delivery `bun:"delivery, rel:has-one,join:delivery=id"`
-	Payment *Payment `bun:"payment, rel:has-one,join:payment=id"`
-	Items []*Item `bun:"items,m2m:order_to_items,join:Order=Item"`
+	Delivery *Delivery `bun:"delivery,rel:has-one,join:delivery=id"`
+	Payment *Payment `bun:"payment,rel:has-one,join:payment=id"`
+	Items []*Item `bun:"items,m2m:wb.order_item,join:Order=Item"`
 	Locale *string `bun:"locale"`
 	InternalSignature *string `bun:"internal_signature"`
 	CustomerId *string `bun:"customer_id"`
@@ -51,7 +51,7 @@ type Payment struct {
 	Currency *string `bun:"currency"`
 	Provider *string `bun:"provider"`
 	Amount *int `bun:"amount"`
-	PaymentDate *time.Time `bun:"payment_dt"`
+	PaymentDate *string `bun:"payment_dt"`
 	Bank *string `bun:"bank"`
 	DeliveryCost *int `bun:"delivery_cost"`
 	GoodsTotal *int `bun:"goods_total"`
@@ -62,7 +62,7 @@ type Item struct {
 	
 	bun.BaseModel `bun:"table:wb.item"`
 
-	ChrtId int64 `bun:"chrt_id,pk,autoincrement"`
+	ChrtId int64 `bun:"id,pk,autoincrement"`
 	TrackNumber *string  `bun:"track_number"`
 	Price *int `bun:"price"`
 	RId *string `bun:"rid"`
@@ -75,12 +75,11 @@ type Item struct {
 	Status *int `bun:"status"`
 }
 
-//TODO register relation https://bun.uptrace.dev/guide/relations.html#many-to-many-relation
 type OrderToItem struct {
 
 	bun.BaseModel `bun:"table:wb.order_item"`
 
-	OrderID int64  `bun:"order_id,pk"`
+	OrderID string  `bun:"order_id,pk"`
 	Order   *Order `bun:"rel:belongs-to,join:order_id=id"`
 	ItemID  int64  `bun:"item_id,pk"`
 	Item    *Item  `bun:"rel:belongs-to,join:item_id=id"`

@@ -1,6 +1,7 @@
 package main
 
 import (
+	models "WBTech_L0/service/models"
 	"context"
 	"fmt"
 	"net/http"
@@ -9,21 +10,23 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 )
 
-var dbPool *pgxpool.Pool
+var postgresConfig = "postgres://postgres:qwerty123@localhost:5432/postgres?sslmode=disable&search_path=golang_migrate"
+var db *bun.DB
 
 func main() {
 
 	//requires golang_migrate schema to exist in db
 	m, err := migrate.New(
-		"file://../migrations",
-		"postgres://postgres:qwerty123@localhost:5432/postgres?sslmode=disable&search_path=golang_migrate")
+		"file://migrations",
+		postgresConfig)
 	if err == nil {
 		if err := m.Up(); err != nil {
 			if err.Error() == "no change" {
@@ -36,7 +39,7 @@ func main() {
 		fmt.Println("Migrations failed: " + err.Error())
 	}
 	
-	err = InitConnection("host=localhost port=5432 user=postgres password=qwerty123 dbname=postgres sslmode=disable")
+	err = InitDbConnection()
 	if err != nil {
 		fmt.Println("DB connection failed: " + err.Error())
 	}
@@ -59,16 +62,17 @@ func main() {
 	}
 }
 
-func InitConnection(config string) error {
-	var err error
-	ctx := context.Background()
-	dbPool, err = pgxpool.Connect(ctx, config)
+func InitDbConnection() error {
+	config, err := pgx.ParseConfig(postgresConfig)
 	if err != nil {
-		fmt.Println("DB connection failed: " + err.Error())
+		panic(err)
 	}
+	config.PreferSimpleProtocol = true
 
-	asd, err := dbPool.Acquire(ctx)
-	asd.Conn().PgConn().Conn()
+	sqldb := stdlib.OpenDB(*config)
+	db = bun.NewDB(sqldb, pgdialect.New())
+
+	db.RegisterModel((*models.OrderToItem)(nil))
 
 	return err
 }
@@ -83,7 +87,7 @@ func BuildRouter() http.Handler {
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 		AllowMethods:     []string{http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions}}))
 
-	router.GET("/order", TestHandler)
+	router.GET("/order/:id", GetOrder)
 
 	return router
 }
@@ -94,4 +98,21 @@ func TestHandler(c echo.Context) error {
 
 type Responce struct {
 	Message string `json:"message"`
+}
+
+func GetOrder(c echo.Context) error {
+
+	order := new(models.Order)
+
+	if err := db.NewSelect().
+		Model(order).
+		Relation("Delivery").
+		Relation("Payment").
+		//Relation("Items").
+		//Where("wb.order.id = ?", c.Param("id")).
+		Scan(context.Background()); err != nil {
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, order)
 }
