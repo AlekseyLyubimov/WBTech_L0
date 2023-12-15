@@ -6,8 +6,11 @@ INSERT INTO wb.payment ("id", transaction, request_id, currency, provider, amoun
 
 INSERT INTO wb.item ("id", track_number, price, rid, name, sale, size, total_price, nm_id, brand, status) 
     VALUES (1, 'WBILMTESTTRACK', 453, 'ab4219087a764ae0btest', 'Mascaras', 30, '0', 317, 2389212, 'Vivienne Sabo', 202);
+INSERT INTO wb.item ("id", track_number, price, rid, name, sale, size, total_price, nm_id, brand, status) 
+    VALUES (2, 'WBILMTESTTRACK2', 999, 'ab4219087a764ae0btest', 'Mascaras', 30, '0', 317, 2389212, 'Vivienne Sabo', 202);
 
 INSERT INTO wb.order ("id", track_number, entry, delivery, payment, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard) 
     VALUES ('b563feb7b2b84b6test', 'WBILMTESTTRACK', 'WBIL', 1, 1, 'en', '', 'test', 'meest', '9', 99, '2021-11-26T06:22:19Z', '1');
 
 INSERT INTO wb.order_item (order_id, item_id) VALUES ('b563feb7b2b84b6test', 1);
+INSERT INTO wb.order_item (order_id, item_id) VALUES ('b563feb7b2b84b6test', 2);

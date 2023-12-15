@@ -11,7 +11,7 @@ type Order struct {
 
 	bun.BaseModel `bun:"table:wb.order"`
 
-	ID *string `bun:"id,pk"`
+	ID string `bun:"id,pk"`
 	TrackNumber *string `bun:"track_number"`
 	Entry *string `bun:"entry"`
 	Delivery *Delivery `bun:"delivery,rel:has-one,join:delivery=id"`
