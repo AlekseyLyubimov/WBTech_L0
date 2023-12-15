@@ -102,7 +102,11 @@ type Responce struct {
 
 func GetOrder(c echo.Context) error {
 
+	//TODO unsafe
+	id := c.Param("id")
+
 	order := new(models.Order)
+	order.ID = &id
 
 	if err := db.NewSelect().
 		Model(order).
@@ -110,6 +114,7 @@ func GetOrder(c echo.Context) error {
 		Relation("Payment").
 		//Relation("Items").
 		//Where("wb.order.id = ?", c.Param("id")).
+		WherePK().
 		Scan(context.Background()); err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
