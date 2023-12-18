@@ -98,10 +98,6 @@ func buildRouter() http.Handler {
 	return router
 }
 
-type Responce struct {
-	Message string `json:"message"`
-}
-
 func getOrder(c echo.Context) error {
 
 	order := new(models.Order)
@@ -129,8 +125,13 @@ func natsSubsription() (err error) {
 	}
 
 	_, err = sc.Subscribe("foo", func(m *stan.Msg) {
+		
+		
 		fmt.Printf("Received a message: %s\n", string(m.Data))
-	}, stan.DurableName("test_subscription"))
+
+
+		m.Ack()
+	}, stan.DurableName("test_subscription"), stan.SetManualAckMode())
 
 	return err
 }
