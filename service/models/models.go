@@ -22,7 +22,7 @@ type Order struct {
 	CustomerId *string `bun:"customer_id"`
 	DeliveryService *string `bun:"delivery_service"`
 	Shardkey *string `bun:"shardkey"`
-	SmId *int `bun:"sm_id"`
+	SmId *int `bun:"sm_id" json:"-"`
 	DateCreated time.Time `bun:"date_created"`
 	OofShard *string `bun:"oof_shard"`
 }

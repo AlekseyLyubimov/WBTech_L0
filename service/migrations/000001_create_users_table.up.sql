@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS wb.order (
     entry            character varying(250),
     delivery         bigint,
     payment          bigint,
-    items            bigint[],
     locale           character varying(250),
     internal_signature     character varying(250),
     customer_id      character varying(250),

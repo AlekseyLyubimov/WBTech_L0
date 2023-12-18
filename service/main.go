@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v4/stdlib"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/nats-io/stan.go"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 )
@@ -39,7 +40,7 @@ func main() {
 		fmt.Println("Migrations failed: " + err.Error())
 	}
 	
-	err = InitDbConnection()
+	err = initDbConnection()
 	if err != nil {
 		fmt.Println("DB connection failed: " + err.Error())
 	}
@@ -49,11 +50,16 @@ func main() {
 
 	server := &http.Server{
 		Addr:           ":8080",
-		Handler:        BuildRouter(),
+		Handler:        buildRouter(),
 		ReadTimeout:    ten_seconds ,
 		WriteTimeout:   ten_seconds,
 		IdleTimeout:    fifteen_minutes,
 		MaxHeaderBytes: 2048,
+	}
+
+	err = natsSubsription()
+	if err != nil {
+		fmt.Println("NATS subscription failed: " + err.Error())
 	}
 
 	err = server.ListenAndServe()
@@ -62,7 +68,7 @@ func main() {
 	}
 }
 
-func InitDbConnection() error {
+func initDbConnection() error {
 	config, err := pgx.ParseConfig(postgresConfig)
 	if err != nil {
 		panic(err)
@@ -77,7 +83,7 @@ func InitDbConnection() error {
 	return err
 }
 
-func BuildRouter() http.Handler {
+func buildRouter() http.Handler {
 
 	router := echo.New()
 
@@ -87,20 +93,16 @@ func BuildRouter() http.Handler {
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 		AllowMethods:     []string{http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions}}))
 
-	router.GET("/order/:id", GetOrder)
+	router.GET("/order/:id", getOrder)
 
 	return router
-}
-
-func TestHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, Responce{"test ok"})
 }
 
 type Responce struct {
 	Message string `json:"message"`
 }
 
-func GetOrder(c echo.Context) error {
+func getOrder(c echo.Context) error {
 
 	order := new(models.Order)
 	order.ID = c.Param("id")
@@ -116,4 +118,19 @@ func GetOrder(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, order)
+}
+
+func natsSubsription() (err error) {
+	sc, err := stan.Connect("test-cluster", "client-123")
+	if (err != nil) {return err}
+
+	for i := 0; i < 10; i++ {
+		sc.Publish("foo", []byte(fmt.Sprintf("All is Well %d", i)))
+	}
+
+	_, err = sc.Subscribe("foo", func(m *stan.Msg) {
+		fmt.Printf("Received a message: %s\n", string(m.Data))
+	}, stan.DurableName("test_subscription"))
+
+	return err
 }
