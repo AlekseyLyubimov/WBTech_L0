@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"encoding/json"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -120,17 +121,22 @@ func natsSubsription() (err error) {
 	sc, err := stan.Connect("test-cluster", "client-123")
 	if (err != nil) {return err}
 
-	for i := 0; i < 10; i++ {
-		sc.Publish("foo", []byte(fmt.Sprintf("All is Well %d", i)))
-	}
-
 	_, err = sc.Subscribe("foo", func(m *stan.Msg) {
 		
+		var order models.Order
+		err := json.Unmarshal(m.Data, &order)
+
+		if err != nil {
+			//should be replaced with actual logging of unparsable input.
+			fmt.Printf("mock logging bad input for message %s", m.Data)
+			m.Ack()
+		} else {
+			_, err := db.NewInsert().Model(order).Exec(context.Background())
+			if err == nil {
+				m.Ack()
+			}
+		}
 		
-		fmt.Printf("Received a message: %s\n", string(m.Data))
-
-
-		m.Ack()
 	}, stan.DurableName("test_subscription"), stan.SetManualAckMode())
 
 	return err
