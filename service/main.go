@@ -22,6 +22,7 @@ import (
 
 var postgresConfig = "postgres://postgres:qwerty123@localhost:5432/postgres?sslmode=disable&search_path=golang_migrate"
 var db *bun.DB
+var sc stan.Conn
 
 func main() {
 
@@ -95,6 +96,7 @@ func buildRouter() http.Handler {
 		AllowMethods:     []string{http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete, http.MethodOptions}}))
 
 	router.GET("/order/:id", getOrder)
+	router.POST("/order", postNatsMessage)
 
 	return router
 }
@@ -117,8 +119,17 @@ func getOrder(c echo.Context) error {
 	return c.JSON(http.StatusOK, order)
 }
 
+func postNatsMessage(c echo.Context) error {
+	order := new(models.Order)
+	c.Bind(&order)
+	order_json, err := json.Marshal(order)
+	if (err != nil) {println(err.Error())}
+	return sc.Publish("foo", []byte(order_json))
+}
+
+
 func natsSubsription() (err error) {
-	sc, err := stan.Connect("test-cluster", "client-123")
+	sc, err = stan.Connect("test-cluster", "client-123")
 	if (err != nil) {return err}
 
 	_, err = sc.Subscribe("foo", func(m *stan.Msg) {
@@ -131,9 +142,11 @@ func natsSubsription() (err error) {
 			fmt.Printf("mock logging bad input for message %s", m.Data)
 			m.Ack()
 		} else {
-			_, err := db.NewInsert().Model(order).Exec(context.Background())
+			_, err := db.NewInsert().Model(&order).Exec(context.Background())
 			if err == nil {
 				m.Ack()
+			} else {
+				fmt.Println("failed to insert: " + err.Error())
 			}
 		}
 		
