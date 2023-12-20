@@ -23,6 +23,8 @@ import (
 var postgresConfig = "postgres://postgres:qwerty123@localhost:5432/postgres?sslmode=disable&search_path=golang_migrate"
 var db *bun.DB
 var sc stan.Conn
+//all the cacheing packages I checked out are kinda scuffed, so I am using map for demonstration purposes
+var cache = make(map[string]*models.Order)
 
 func main() {
 
@@ -106,14 +108,21 @@ func getOrder(c echo.Context) error {
 	order := new(models.Order)
 	order.ID = c.Param("id")
 
-	if err := db.NewSelect().
-		Model(order).
-		Relation("Delivery").
-		Relation("Payment").
-		Relation("Items").
-		WherePK().
-		Scan(context.Background()); err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+	val, ok := cache[order.ID]
+	if ok {
+		order = val
+	} else {
+		if err := db.NewSelect().
+			Model(order).
+			Relation("Delivery").
+			Relation("Payment").
+			Relation("Items").
+			WherePK().
+			Scan(context.Background()); err != nil {
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+
+		cache[order.ID] = order
 	}
 
 	return c.JSON(http.StatusOK, order)
@@ -144,6 +153,7 @@ func natsSubsription() (err error) {
 		} else {
 			_, err := db.NewInsert().Model(&order).Exec(context.Background())
 			if err == nil {
+				cache[order.ID] = &order
 				m.Ack()
 			} else {
 				fmt.Println("failed to insert: " + err.Error())
